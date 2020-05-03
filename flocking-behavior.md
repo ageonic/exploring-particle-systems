@@ -15,6 +15,8 @@ _Abstract_.
 ### Introduction
 
 
+
+
 #### 1.1 Background
 
 #### 1.2 Processing
@@ -22,9 +24,13 @@ _Abstract_.
 #### 1.3 Vectors
 
 
+
+
 ## Chapter Two
 
 ### Implementing the Particle System
+
+
 
 
 ## Chapter Three
@@ -45,6 +51,8 @@ _Abstract_.
 ## Chapter Four
 
 ### Using the Flocking Algorithm
+
+
 
 
 #### Avoiding Predators
@@ -70,11 +78,3 @@ _Abstract_.
     <img src="images/rorschach_2.gif">
 </div>
 
-
-### References
-
-https://www.khanacademy.org/computing/computer-programming/programming-natural-simulations/programming-particle-systems/a/intro-to-particle-systems
-
-https://www.lri.fr/~mbl/ENS/IG2/devoir2/files/docs/fuzzyParticles.pdf
-
-http://www.cse.chalmers.se/~uffe/xjobb/ParticleSystemSimulationAndRenderingOnTheXbox360GPU.pdf
