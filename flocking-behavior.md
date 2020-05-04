@@ -5,7 +5,7 @@
 
 ___
 
-_Abstract_. 
+_Abstract_. Particle systems have primarily been used for the procedural generation of natural phenomena in movies, digital animation, and video games. This discussion provides an introduction to particle systems and walks through the implementation of a simple particle system. The implemented system is used to simulate flocking behaviors in nature and demonstrate the applications of the flocking algorithm in digital art and design.
 
 ---
 
@@ -435,20 +435,34 @@ Running our sketch now displays the desired flocking behavior.
 
 
 
-
-
-# Using the Flocking Algorithm
+# Applying the Flocking Algorithm
 
 ## 4.1 Avoiding Predators
 
-```java
-private void avoid(ArrayList<Attractor> attractors) {
-    for (Attractor a: attractors) {
-        float distance = position.dist(a.position);
+The general flocking behavior of boids, while impressive, only provides a basic simulation of flocking behavior. We continue this discussion by introducing a new element onto the canvas - a predator. Let's begin by implementing a `Predator` class as an extension of `Boid`. It will be rendered on the canvas a larger red triangle.
 
-        if (distance<40) {
+```java
+class Predator extends Boid {
+	public Predator(float x, float y) {
+		super(x, y, 10, 255, 0, 0);
+	}
+}
+```
+
+<div style="text-align: center;">
+    <img src="images/predator_no_avoidance.gif">
+</div>
+
+The flocking behavior continues, but none of the boids seem to react to the predators. We can implement another method in the `Boid` class to enable avoidance of predators.
+
+```java
+private void avoid(ArrayList<Predator> predators) {
+    for (Predator predator: predators) {
+        float distance = position.dist(predator.position);
+
+        if (distance < 40) {
             PVector steeringForce = new PVector();
-            PVector repellentForce = PVector.sub(position, a.position);
+            PVector repellentForce = PVector.sub(position, predator.position);
             steeringForce.add(repellentForce);
             steeringForce.sub(this.velocity);
             steeringForce.limit(1);
@@ -460,29 +474,128 @@ private void avoid(ArrayList<Attractor> attractors) {
 ```
 
 
-
-<div style="text-align: center;">
-    <img src="images/predator_no_avoidance.gif">
-</div>
-
-
-
 <div style="text-align: center;">
     <img src="images/predator_avoidance.gif">
 </div>
+We now observe additional avoidance of predators along with flocking behaviors. This demonstrates how additional behaviors can be implemented to generate higher order flocking behavior.
 
 
-## 4.2 Rorschach
+
+## 4.2 Multiple Systems
+
+The power of particle systems becomes more apparent when we simultaneously implement several of them. We do this by adding as many array lists of particles as needed. Since the code for the sketch remains the same, we will only display the resulting sketches.
 
 <div style="text-align: center;">
-    <img src="images/rorschach_0.gif">
-    <img src="images/rorschach_1.gif">
-    <img src="images/rorschach_2.gif">
-    <img src="images/rorschach_multiple.gif">
+    <img src="images/multiple_flocking.gif">
 </div>
+
+In the sketch above, the two systems are colored differently, but we clearly notice that they flow in their own respective directions. What would this behavior look like if we introduced the predators?
+
+<div style="text-align: center;">
+    <img src="images/multiple_flocking_avoidance.gif">
+</div>
+
+We notice that the two systems avoid the predators as expected, but continue to maintain their respective directions. Finally, as an experiment, we force the second system to flock with boids in the first system. This starts to display some dense, fluid-like motions that may be useful in other projects.
+
+<div style="text-align: center;">
+    <img src="images/multiple_flocking_together.gif">
+</div>
+
+
+
+## 4.3 Rorschach
+
+As a final demonstration, we use all the code that has been implemented so far to generate a more aesthetic and artistic piece. The goal is to procedurally generate Rorschach inspired patterns that are constantly shifting and moving. We will do this by creating a boid that implements only one behavior - attracting other boids. 
+
+```java
+class Attractor extends Boid {
+	public Attractor(float x, float y) {
+		super(x, y, 10, 255, 255, 255);
+		this.velocity.setMag(10);
+	}
+
+	public void attract(ArrayList<Boid> boids) {
+		ArrayList<Boid> neighbors = nearestNeighbors(boids);
+
+		for (Boid b: neighbors) {
+			b.applyForce(PVector.sub(this.position, b.position).limit(0.4));
+		}
+	}
+}
+```
+
+Next, we will create a sketch that overrides the render method for all regular boids to draw an ellipse instead of a triangle with a higher stroke weight and greater opacity. We will also reflect each boid on the opposite side of the canvas to achieve symmetric patterns. We also modify the `avoid` method in the `Boid` class to enable avoidance of attractors. Finally, we  increase the number of boids in the system and constrain them to a small box. This increases the density of the generated visuals because there are numerous boids enclosed in a small space.
+
+```java
+ArrayList<Boid> boids = new ArrayList<Boid> ();
+ArrayList<Attractor> attractors = new ArrayList<Attractor> ();
+
+float constrainLimit = 50;
+
+void setup() {
+	size(400, 200);
+
+	for (int i = 0; i < 4; i++) {
+		attractors.add(new Attractor(0, 0));
+	}
+
+	for (int i = 0; i < 1000; i++) {
+		boids.add(new Boid(random(-4, 4), random(-6, -4), 4));
+	}
+}
+
+void draw() {
+	background(255);
+
+	translate(width / 2, height / 2);
+
+	for (Attractor a: attractors) {
+		a.update();
+        a.constrain(-constrainLimit, constrainLimit, -constrainLimit, constrainLimit);
+		a.attract(boids);
+	}
+
+	for (Boid b: boids) {
+		b.flock(boids);
+		b.avoid(attractors);
+		b.update();
+		b.constrainRepell(-constrainLimit, constrainLimit, -constrainLimit, constrainLimit);
+
+		stroke(55, 30);
+		strokeWeight(6);
+		point(b.position.x, b.position.y);
+		point(b.position.x + (2 * (-b.position.x)), b.position.y);
+	}
+}
+```
+
+<div style="text-align: center;">
+    <img src="images/rorschach_attractor_visible.gif">
+</div>
+
+We notice that the boids steer toward the attractors, which are constantly moving. This causes a dynamic and fluid motion in the boids. If we invert the colors and hide the attractors, these are the final results.
+
+<div style="text-align: center;">
+    <img style="display: inline-block; margin: 2px;" width="48%" src="images/rorschach_0.gif">
+    <img style="display: inline-block; margin: 2px;" width="48%" src="images/rorschach_1.gif">
+    <img style="display: inline-block; margin: 2px;" width="48%" src="images/rorschach_2.gif">
+    <img style="display: inline-block; margin: 2px;" width="48%" src="images/rorschach_multiple.gif">
+</div>
+
+To achieve the last design, we used three systems with varying colors and a larger number of boids.
+
+
+
+# Conclusion
+
+The goal of this discussion was to introduce particle systems as a way to simulate flocking behaviors in organisms. We observed the similarities between the *boid*, as described by Reynolds (1987), and particles, as described by Reeves (1983). In light of the similarities, we were able to generalize the implementation of a Particle to the implementation of a boid. Using the basic rules that bind steering behaviors, we simulated flocking and avoidance behaviors in groups of organisms, and utilized these implementations to generate dynamic and fluid animations. We have thus demonstrated the application of particle systems beyond movie and video game graphics. Furthermore, we have displayed creative ways to use the flocking algorithm for artistic pieces.
 
 
 
 # References
 
-Reeves, 1983 https://www.lri.fr/~mbl/ENS/IG2/devoir2/files/docs/fuzzyParticles.pdf
+Reeves, W. T. (1983). Particle systems---a technique for modeling a class of fuzzy objects. *ACM SIGGRAPH Computer Graphics*, *17*(3), 359–375. doi: 10.1145/964967.801167
+
+Reynolds, C. W. (1987). Flocks, herds and schools: A distributed behavioral model. *ACM SIGGRAPH Computer Graphics*, *21*(4), 25–34. doi: 10.1145/37402.37406
+
+Shiffman, D. (2012). *The nature of code*. Erscheinungsort nicht ermittelbar: Selbstverl.
