@@ -17,7 +17,7 @@ _Abstract_. Particle systems have primarily been used for the procedural generat
 
 Particle systems originated in 1982 as a solution for simulating phenomena like clouds, smoke, water, fire, and other *fuzzy* objects that could not be graphically modeled through the technology of the time (Reeves, 1983). Reeves, an animator at Lucasfilm Ltd., used the word *fuzzy* to describe objects that have dynamic and fluid structures. In other words, these objects are not rigid and their surface and shape is not always well defined. While working on the movie *Star Trek II: The Wrath of Khan*, Reeves described a technique that enables the procedural generation of fuzzy objects. Specifically, a scene in the movie required a wall of fire that ripples over a planet (Shiffman, 2012). To achieve the desired graphic, particle systems were implemented and used to imitate the features of fire.
 
-The applications of particle systems is not confined to movies - they have been used in several settings like video games and digital animation to generate realistic simulations of natural phenomena. This discussion focuses on building and using a particle system to simulate flocking behaviors in organisms. This specifically pertains to birds, fish, and bees - species that are known to exhibit specific behaviors while traveling in groups. 
+The applications of particle systems are not confined to movies - they have been used in several settings like video games and digital animation to generate realistic simulations of natural phenomena. This discussion focuses on building and using a particle system to simulate flocking behaviors in organisms. This specifically pertains to birds, fish, and bees - species that are known to exhibit specific behaviors while traveling in groups. 
 
 
 
@@ -41,7 +41,7 @@ void draw() {
 }
 ```
 
-Notice that a `setup` function is also included. This function is executed one time before the sketch is rendered and is typically used for initial tasks such as setting the canvas size, background color, specifying the renderer, initializing variables, and variable assignment. The `draw` function contains the code that is executed each frame and is typically used to draw images or visuals on the canvas. More details about Processing, the Processing Foundation, and the Processing Community can be found [here](https://processing.org/).
+Notice that a `setup` function is also included. This function is executed one time, before the sketch is rendered, and is typically used for initial tasks such as setting the canvas size, background color, specifying the renderer, initializing variables, and variable assignment. The `draw` function contains the code that is executed during each frame of the sketch and is typically used to draw images or visuals on the canvas. More details about Processing, the Processing Foundation, and the Processing Community can be found [here](https://processing.org/).
 
 
 
@@ -57,11 +57,11 @@ An important construct used throughout this project is a *vector*. Simply stated
 
 Reeves (1983)  delineates three ways in which objects created with particle systems differ from objects created using traditional techniques. 
 
-1. *Structure.* With particles systems, objects are not generated as a synthesis of well defined shapes that define the object's boundary. Instead, they are generated as *clouds* of primitive particles that define the object's volume.
+1. *Structure.* With particles systems, objects are not generated as a synthesis of well-defined shapes that define the object's boundary. Instead, they are generated as *clouds* of primitive particles that define the object's volume.
 2. *Lifetime.* Particle systems are not static. They comprise of individual particles that are created and destroyed as necessary.
 3. *Shape.* Objects created with particle systems are not deterministic. This means that their shape and form are not completely defined. Instead, the shape and form is created and shaped through other pseudo random algorithmic techniques.
 
-Note that the density of an object is determined by the number of particles in the system - greater density is achieved by increasing the number of particles. Unsurprisingly, at the core of a particle system is the individual particle - an entity that possesses several attributes.
+Note that the number of particles in the system determines the density of an object - greater density is achieved by increasing the number of particles. Unsurprisingly, at the core of a particle system is the individual particle - an entity that possesses several attributes.
 
 Reeves describe seven properties that characterize a particle. Accordingly, a particle has a (1) position, (2) velocity, (3) size, (4) color, (5) transparency, (6) shape, and (7) lifetime. On creation of a new particle, an initial value must be determined for each of these properties. These properties control the structure, shape, density, and form of a particle system. The initial properties for each particle can be manipulated to enhance the dynamic qualities of the object.
 
@@ -200,7 +200,7 @@ We now have a basic Particle object that we can extend to implement the flocking
 
 ## 3.1 Boids
 
-Several organisms tend to follow specific patterns when traveling in groups. In general, and at the most basic level, these patterns appear to be bound by three simple rules. These rules describe the *steering* behaviors of organisms which represent the ability to navigate around their world in a lifelike and improvisational manner. Reynolds used the word *boids* to describe the generic (simulated) flocking creatures used to demonstrate these rules  (Reynolds, 1987).
+Several organisms tend to follow specific patterns when traveling in groups. In general, and at the most basic level, these patterns appear to be bound by three simple rules. These rules describe the *steering* behaviors of organisms that represent their ability to navigate around their world in a lifelike and improvisational manner. Reynolds used the word *boids* to describe the generic (simulated) flocking creatures used to demonstrate these rules  (Reynolds, 1987).
 
 1. *Separation.* Steering to avoid crowding *local* flockmates.
 2. *Alignment.* Steering towards the average heading of *local* flockmates.
@@ -329,13 +329,13 @@ Now, we can update our sketch to utilize the separation behavior by inserting `b
     <img src="images/separation.gif">
 </div>
 
-Observe how each boid swerves away from neighboring boids. We have thus achieved the desired separation behavior.
+Observe how each boid swerves away from neighboring boids. We have, thus, achieved the desired separation behavior.
 
 
 
 ### 3.2.2 Alignment
 
-Alignment involves steering towards the average heading of local flockmates. This implementation is similar to separation. We calculate the steering force by finding the average velocity of each neighboring boid. Applying this to the acceleration of the current boid should result in the alignment behavior. Note that on `line 11` we subtract the current boid's velocity from the steering force. We do this based on Reynold's formula for steering which states that it is the difference between the desired velocity and the current velocity.
+Alignment involves steering towards the average heading of local flockmates. This implementation is similar to separation. We calculate the steering force by finding the average velocity of each neighboring boid. Applying this to the acceleration of the current boid should result in the alignment behavior. Note that on `line 11` we subtract the current boid's velocity from the steering force. We do this based on Reynold's formula for steering, which states that it is the difference between the desired velocity and the current velocity.
 
 ```java
 private void alignment(ArrayList<Boid> boids) {
