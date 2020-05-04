@@ -11,19 +11,17 @@ _Abstract_.
 
 
 
-## Introduction
+# Introduction
 
-
-
-### 1.1 Background
+## 1.1 Background
 
 Particle systems originated in 1982 as a solution for simulating phenomena like clouds, smoke, water, fire, and other *fuzzy* objects that could not be graphically modeled through the technology of the time (Reeves, 1983). Reeves, an animator at Lucasfilm Ltd., used the word *fuzzy* to describe objects that have dynamic and fluid structures. In other words, these objects are not rigid and their surface and shape is not always well defined. While working on the movie *Star Trek II: The Wrath of Khan*, Reeves described a technique that enables the procedural generation of fuzzy objects. Specifically, a scene in the movie required a wall of fire that ripples over a planet (Shiffman, 2012). To achieve the desired graphic, particle systems were implemented and used to imitate the features of fire.
 
-The applications of particle systems is not confined to movies - they have been used in several settings like video games and digital animation to generate realistic simulations of natural phenomena. This discussion focuses on building and using a particle system to simulate flocking behavior in animals. This specifically pertains to birds, fish, and bees - species that are known to exhibit specific behaviors while traveling in groups. 
+The applications of particle systems is not confined to movies - they have been used in several settings like video games and digital animation to generate realistic simulations of natural phenomena. This discussion focuses on building and using a particle system to simulate flocking behaviors in organisms. This specifically pertains to birds, fish, and bees - species that are known to exhibit specific behaviors while traveling in groups. 
 
 
 
-### 1.2 Processing
+## 1.2 Processing
 
 This discussion utilizes *Processing*, a community driven tool that can be used to teach the fundamentals of programming using Java in a visual context.
 
@@ -47,19 +45,15 @@ Notice that a `setup` function is also included. This function is executed one t
 
 
 
-### 1.3 Vectors
+## 1.3 Vectors
 
 An important construct used throughout this project is a *vector*. Simply stated, a vector is an entity that has both magnitude and direction (Shiffman, 2012). The magnitude of a vector determines its length, while the direction determines which way the vector is pointing. The idea of a vector is integral to this discussion because it has mathematical properties that can be utilized to transform points in Euclidean space to give the illusion of motion. Thankfully, Processing contains several structures and methods that allow the mathematical manipulation of vectors in two and three dimensions.
 
 
 
-## Particles
+# Particles
 
-
-
-### 2.1 Properties of Particles
-
-### 
+## 2.1 Properties of Particles
 
 Reeves (1983)  delineates three ways in which objects created with particle systems differ from objects created using traditional techniques. 
 
@@ -73,7 +67,7 @@ Reeves describe seven properties that characterize a particle. Accordingly, a pa
 
 
 
-### 2.2 Implementing the Particle System
+## 2.2 Implementing the Particle System
 
 The previous section discussed the characteristics of a particle. In this section, we will attempt to implement a particle object and render it through a Processing sketch.
 
@@ -202,25 +196,270 @@ We now have a basic Particle object that we can extend to implement the flocking
 
 
 
-## Flocking
+# Flocking
 
-### 3.1 Boids
+## 3.1 Boids
 
-### 3.2 The Flocking Algorithm
+Several organisms tend to follow specific patterns when traveling in groups. In general, and at the most basic level, these patterns appear to be bound by three simple rules. These rules describe the *steering* behaviors of organisms which represent the ability to navigate around their world in a lifelike and improvisational manner. Reynolds used the word *boids* to describe the generic (simulated) flocking creatures used to demonstrate these rules  (Reynolds, 1987).
+
+1. *Separation.* Steering to avoid crowding *local* flockmates.
+2. *Alignment.* Steering towards the average heading of *local* flockmates.
+3. *Cohesion.* Steering to move towards the average position of *local* flockmates.
+
+Applying all three rules to a group of boids must theoretically result in simulated flocking behavior. Observe that all three rules are applied relative to *local* flockmates. This is an important detail that implies that a radius of perception exists for each boid. Thus, each rule must be implemented in relation to neighboring boids, rather than all boids on the canvas.
+
+
+
+## 3.2 Implementing the Flocking Algorithm
+
+Based on the description of a boid, we notice that it can be implemented as an extension of the existing `Particle` class.
+
+```java
+public class Boid extends Particle {
+    float perceptionRadius;
+
+	public Boid(float x, float y, float size, float r, float g, float b) {
+		super(x, y, 1, size, 2, r, g, b);
+		perceptionRadius = 60;
+	}
+}
+```
+
+We introduce an additional attribute `perceptionRadius` to specify a boid's area of perception. This is set to a default value of 60 (in this case, pixels). Next, we override the `render` method of the `Particle` class.
+
+```java
+public void render() {
+    push();
+    stroke(255);
+    fill(255);
+    translate(this.position.x, this.position.y);
+    rotate(this.velocity.heading() - radians(90));
+    triangle(0, 0, this.size, 0, this.size / 2, this.size * 1.2);
+    pop();
+}
+```
+
+This renders each boid as a triangle that points in the direction of its current heading. Let's create a sketch to render `500` boids on the canvas. We will make use of the existing `update` method to simulate motion in the boids. 
+
+```java
+ArrayList<Boid> boids = new ArrayList<Boid> ();
+
+void setup() {
+	size(500, 300);
+
+	for (int i = 0; i<500; i++) {
+		boids.add(new Boid(random(width), random(height), 3, 255, 100, 255));
+	}
+}
+
+void draw() {
+	background(55);
+
+	for (Boid b: boids) {
+		b.update();
+		b.wrapEdges();
+		b.render();
+	}
+}
+```
 
 <div style="text-align: center;">
     <img src="images/no_flocking.gif">
 </div>
 
+We now see our boids on the canvas, but they all seem to be moving randomly. In preparation for implementing the flocking algorithm, we implement a method to find all neighboring boids that are within the perception radius of each boid.
 
+```java
+public ArrayList<Boid> nearestNeighbors(ArrayList<Boid> boids) {
+    ArrayList<Boid> neighbors = new ArrayList<Boid> ();
+
+    for (Boid boid: boids) {
+        float distance = position.dist(boid.position);
+        if (boid != this && distance<perceptionRadius) {
+            neighbors.add(boid);
+        }
+    }
+
+    return neighbors;
+}
+```
+
+We are now ready to implement the flocking rules.
+
+
+
+### 3.2.1 Separation
+
+Separation involves steering to avoid crowding local flockmates. This means that if a boid approaches the position of one of its neighbors, it must steer away from that position. This ensures that all boids do not end up at the same location and remain *separate*. We achieve this behavior by subtracting the neighboring boid's position from the current boid. This results in a vector in the opposite direction from the neighboring boid and can be considered as the repellent force. We can calculate the cumulative force for each neighboring boid and divide by the total number of neighbors to find the average repellent force. Finally, we add the repellent force to the acceleration of the current boid.
+
+```java
+private void separation(ArrayList<Boid> nearby) {
+    PVector steeringForce = new PVector();
+
+    for (Boid boid: nearby) {
+        float distance = position.dist(boid.position);
+        PVector repellentForce = PVector.sub(position, boid.position);
+        repellentForce.div(distance);
+        steeringForce.add(repellentForce);
+    }
+
+    if (nearby.size() > 0) {
+        steeringForce.div(nearby.size());
+        steeringForce.setMag(4);
+        steeringForce.sub(this.velocity);
+        steeringForce.limit(0.3);
+    }
+
+    this.acceleration.add(steeringForce);
+}
+```
+
+Let's create a utility method called `flock` to help execute this method. 
+
+```java
+public void flock(ArrayList<Boid> boids) {
+    ArrayList<Boid> neighbors = this.nearestNeighbors(boids);
+    this.separation(neighbors);
+}
+```
+
+Now, we can update our sketch to utilize the separation behavior by inserting `b.flock(boids)` on `line 15`. The resulting separation behavior is demonstrated below.
+
+<div style="text-align: center;">
+    <img src="images/separation.gif">
+</div>
+
+Observe how each boid swerves away from neighboring boids. We have thus achieved the desired separation behavior.
+
+
+
+### 3.2.2 Alignment
+
+Alignment involves steering towards the average heading of local flockmates. This implementation is similar to separation. We calculate the steering force by finding the average velocity of each neighboring boid. Applying this to the acceleration of the current boid should result in the alignment behavior. Note that on `line 11` we subtract the current boid's velocity from the steering force. We do this based on Reynold's formula for steering which states that it is the difference between the desired velocity and the current velocity.
+
+```java
+private void alignment(ArrayList<Boid> boids) {
+    PVector steeringForce = new PVector();
+
+    for (Boid boid: boids) {
+        steeringForce.add(boid.velocity);
+    }
+
+    if (boids.size() > 0) {
+        steeringForce.div(boids.size());
+        steeringForce.setMag(4);
+        steeringForce.sub(this.velocity);
+        steeringForce.limit(0.2);
+    }
+
+    this.acceleration.add(steeringForce);
+}
+```
+
+Now, we update the `flock` method to execute only the alignment behavior.
+
+```java
+public void flock(ArrayList<Boid> boids) {
+    ArrayList<Boid> neighbors = this.nearestNeighbors(boids);
+    this.alignment(neighbors);
+}
+```
+
+<div style="text-align: center;">
+    <img src="images/alignment.gif">
+</div>
+
+We clearly see that each boid gradually steers towards the general direction of neighboring boids. Thus, the alignment behavior has been achieved.
+
+
+
+### 3.2.3 Cohesion
+
+Cohesion involves steering to move towards the average position of local flockmates. This is similar to the alignment implementation. The only difference is that we calculate the average position of each neighboring boid instead of the average velocity.
+
+```java
+private void cohesion(ArrayList<Boid> boids) {
+    PVector steeringForce = new PVector();
+
+    for (Boid boid: boids) {
+        steeringForce.add(boid.position);
+    }
+
+    if (boids.size() > 0) {
+        steeringForce.div(boids.size());
+        steeringForce.sub(this.position);
+        steeringForce.setMag(4.5);
+        steeringForce.sub(this.velocity);
+        steeringForce.limit(0.2);
+    }
+
+    this.acceleration.add(steeringForce);
+}
+```
+
+Now, we update the `flock` method to execute only the cohesion behavior.
+
+```java
+public void flock(ArrayList<Boid> boids) {
+    ArrayList<Boid> neighbors = this.nearestNeighbors(boids);
+    this.cohesion(neighbors);
+}
+```
+
+<div style="text-align: center;">
+    <img src="images/cohesion.gif">
+</div>
+
+We clearly see that each boid gradually converges on the general position of neighboring boids. Thus, the cohesion behavior has been achieved.
+
+
+
+### 3.2.4 Putting it all Together
+
+We have observed each rule's individual affect on our particles system (boids). We can now modify our code to execute all three rules on each boid. The only change we need to make to achieve this is in the `flock` method.
+
+```java
+public void flock(ArrayList<Boid> boids) {
+    ArrayList<Boid> neighbors = this.nearestNeighbors(boids);
+    this.separation(neighbors);
+    this.alignment(neighbors);
+    this.cohesion(neighbors);
+}
+```
+
+Running our sketch now displays the desired flocking behavior.
 
 <div style="text-align: center;">
     <img src="images/flocking.gif">
 </div>
 
-## Using the Flocking Algorithm
 
-### 4.1 Avoiding Predators
+
+
+
+# Using the Flocking Algorithm
+
+## 4.1 Avoiding Predators
+
+```java
+private void avoid(ArrayList<Attractor> attractors) {
+    for (Attractor a: attractors) {
+        float distance = position.dist(a.position);
+
+        if (distance<40) {
+            PVector steeringForce = new PVector();
+            PVector repellentForce = PVector.sub(position, a.position);
+            steeringForce.add(repellentForce);
+            steeringForce.sub(this.velocity);
+            steeringForce.limit(1);
+
+            this.acceleration.add(steeringForce);
+        }
+    }
+}
+```
+
+
 
 <div style="text-align: center;">
     <img src="images/predator_no_avoidance.gif">
@@ -233,16 +472,17 @@ We now have a basic Particle object that we can extend to implement the flocking
 </div>
 
 
-### 4.2 Rorschach
-
+## 4.2 Rorschach
 
 <div style="text-align: center;">
     <img src="images/rorschach_0.gif">
     <img src="images/rorschach_1.gif">
     <img src="images/rorschach_2.gif">
+    <img src="images/rorschach_multiple.gif">
 </div>
 
 
-## References
+
+# References
 
 Reeves, 1983 https://www.lri.fr/~mbl/ENS/IG2/devoir2/files/docs/fuzzyParticles.pdf
